@@ -5,22 +5,29 @@ services:
 
 
   influxdb:
-    image: influxdb:2.7.12
+    image: influxdb:3.5-core
     container_name: influxdb
-    environment:
-      - DOCKER_INFLUXDB_INIT_MODE=setup 
-      - DOCKER_INFLUXDB_INIT_USERNAME=admin
-      - DOCKER_INFLUXDB_INIT_PASSWORD=Admin@123456
-      - DOCKER_INFLUXDB_INIT_ORG=router 
-      - DOCKER_INFLUXDB_INIT_BUCKET=syslog 
-      - DOCKER_INFLUXDB_INIT_RETENTION=1w 
-      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=a_random_big_token_for_inital_setup
+    command:
+      - sh
+      - -c
+      - |
+        influxdb3 serve --node-id=node0 --object-store=file --data-dir=/var/lib/influxdb3/data  --admin-token-file /etc/influxdb3/token.json
     volumes:
-      - ./influx/data:/var/lib/influxdb2 # Configuration directory
-      - ./influx/config:/etc/influxdb2     
+      - ./influx/data:/var/lib/influxdb3 # Configuration directory
+      - ./influx/config:/etc/influxdb3
     ports:
-      - 8086:8086
+      - "8181:8181"
     restart: unless-stopped
+
+  influxdb3-explorer:
+    image: influxdata/influxdb3-ui
+    container_name: influxdb3-explorer
+    ports:
+      - 8888:80
+    restart: unless-stopped
+    command: ["--mode=admin"]
+    depends_on:
+      - influxdb
 
 
   telegraf:
