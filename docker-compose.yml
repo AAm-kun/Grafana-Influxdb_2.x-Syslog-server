@@ -1,0 +1,65 @@
+version: "3"
+
+
+services:
+
+
+  influxdb:
+    image: influxdb:2.7.12
+    container_name: influxdb
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup 
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=Admin@123456
+      - DOCKER_INFLUXDB_INIT_ORG=router 
+      - DOCKER_INFLUXDB_INIT_BUCKET=syslog 
+      - DOCKER_INFLUXDB_INIT_RETENTION=1w 
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=a_random_big_token_for_inital_setup
+    volumes:
+      - ./influx/data:/var/lib/influxdb2 # Configuration directory
+      - ./influx/config:/etc/influxdb2     
+    ports:
+      - 8086:8086
+    restart: unless-stopped
+
+
+  telegraf:
+    image: telegraf:1.36.3-alpine
+    container_name: telegraf
+    links:
+      - influxdb
+    volumes:
+      # Mount for telegraf config
+      - ./telegraf:/etc/telegraf/
+    restart: unless-stopped  
+
+
+
+  syslog-ng:
+    image: lscr.io/linuxserver/syslog-ng:4.8.3
+    container_name: syslog-ng
+    environment:
+      - TZ=Europe/Rome
+    links:
+      - telegraf  
+    volumes:
+      - ./syslog/syslog-ng.conf:/config/syslog-ng.conf
+      - ./syslog/log:/var/log #optional
+    ports:
+      - 514:5514/udp
+    restart: unless-stopped 
+
+
+
+    
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:12.3.0-18765596677
+    user: "1001:1001"
+    volumes:
+      - ./grafana:/var/lib/grafana
+    links:
+      - influxdb   
+    ports:
+      - 3000:3000
+    restart: unless-stopped  
