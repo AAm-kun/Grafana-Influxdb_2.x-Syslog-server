@@ -1,4 +1,4 @@
-influx
+influx/data
 syslog/log
 grafana
 .DS_Store
